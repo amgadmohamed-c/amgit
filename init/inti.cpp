@@ -1,5 +1,6 @@
 #include <filesystem>
 #include "init.h"
+#include <fstream>
 using namespace std;
 namespace fs = std::filesystem;
 void init::createdir(){
@@ -16,4 +17,22 @@ void init::createdir(){
     std::filesystem::create_directory(path+"/.git/objects");
     std::filesystem::create_directory(path+"/.git/info");
     std::filesystem::create_directory(path+"/.git/logs");
+
+    fs::path HEAD = path+"/.git/HEAD";
+    if(fs::exists(HEAD)){
+        printf("HEAD already exists");
+        return ;
+    }
+    std::ofstream file(HEAD);
+    if(file.is_open()){
+        file << "ref: refs/heads/main\n";
+        file.close();
+    }
+    else{
+        printf("could not create HEAD");
+        return ;
+    }
+
+
+
 }
