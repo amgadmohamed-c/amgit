@@ -1,24 +1,27 @@
 #include <filesystem>
-#include "init.h"
 #include <fstream>
+#include "init.h"
+#include <iostream>
 using namespace std;
 namespace fs = std::filesystem;
-void init::createdir(){
-    if(fs::exists(path+"/.git")){
+std::string path = fs::current_path().string();
+void init(){
+    if(fs::exists(path+"/.mygit")){
         printf("directory already exists");
         return ;
     }
-    fs::path gitpath = path + "/.git";
-
+    fs::path gitpath = path + "/.mygit";
+    cout << gitpath << endl;
 
     std::filesystem::create_directory(gitpath);
-    std::filesystem::create_directory(path+"/.git/refs/heads");
-    std::filesystem::create_directory(path+"/.git/refs/tags");
-    std::filesystem::create_directory(path+"/.git/objects");
-    std::filesystem::create_directory(path+"/.git/info");
-    std::filesystem::create_directory(path+"/.git/logs");
+    std::filesystem::create_directory(path+"/.mygit/refs");
+    std::filesystem::create_directory(path+"/.mygit/refs/heads");
+    std::filesystem::create_directory(path+"/.mygit/refs/tags");
+    std::filesystem::create_directory(path+"/.mygit/objects");
+    std::filesystem::create_directory(path+"/.mygit/info");
+    std::filesystem::create_directory(path+"/.mygit/logs");
 
-    fs::path HEAD = path+"/.git/HEAD";
+    fs::path HEAD = path+"/.mygit/HEAD";
     if(fs::exists(HEAD)){
         printf("HEAD already exists");
         return ;
