@@ -5,10 +5,10 @@
 using namespace std;
 namespace fs = std::filesystem;
 std::string path = fs::current_path().string();
-void init(){
+std::string init(){
     if(fs::exists(path+"/.mygit")){
         printf("directory already exists");
-        return ;
+        return path ;
     }
     fs::path gitpath = path + "/.mygit";
     cout << gitpath << endl;
@@ -24,7 +24,7 @@ void init(){
     fs::path HEAD = path+"/.mygit/HEAD";
     if(fs::exists(HEAD)){
         printf("HEAD already exists");
-        return ;
+        return  path;
     }
     std::ofstream file(HEAD);
     if(file.is_open()){
@@ -33,9 +33,9 @@ void init(){
     }
     else{
         printf("could not create HEAD");
-        return ;
+        return path ;
     }
-
+ return path;
 
 
 }
