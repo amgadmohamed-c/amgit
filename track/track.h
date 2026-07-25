@@ -18,3 +18,5 @@ std::string loadhead(std::string path);
 std::string loadbranch(std::string path , std::string branch);
 
 std::unordered_map<std::string,time_t> load_commit(std::string path , std::string commit) ;
+
+void print(std::vector<FileInfo> mytrackdata);

@@ -33,21 +33,18 @@ std::vector<FileInfo > trackall(std::string path){
         auto it = myindex_files.find(entry.first) ;
         auto it2 = commit.find(entry.first) ;
         if(it == myindex_files.end()){
-            std::cout << "new file" << std::endl  ;
             fileinfo.status = UNTRACKED ;
             fileinfo.filename = entry.first ;
             fileinfo.time = entry.second ;
             mytrackdata.push_back(fileinfo);
         }
         else if(it->second != entry.second){
-            std::cout << "modified file" << std::endl  ;
             fileinfo.status = MODIFIED ;
             fileinfo.filename = entry.first ;
             fileinfo.time = entry.second ;
             mytrackdata.push_back(fileinfo);
         }
         else if(it2==commit.end()){
-            std::cout <<"staged " << entry.first << std::endl  ;
             fileinfo.status = STAGED ;
             fileinfo.filename = entry.first ;
             fileinfo.time = entry.second ;
@@ -56,14 +53,12 @@ std::vector<FileInfo > trackall(std::string path){
         }
 
         else if(it2 != commit.end() && it2->second != entry.second){
-            std::cout << "staged file" << std::endl  ;
             fileinfo.status = STAGED ;
             fileinfo.filename = entry.first ;
             fileinfo.time = entry.second ;
             mytrackdata.push_back(fileinfo);
         }else{
 
-            std::cout << "commited" << entry.first << std::endl  ;
             fileinfo.status = CLEAN ;
             fileinfo.filename = entry.first ;
             fileinfo.time = entry.second ;
@@ -72,13 +67,13 @@ std::vector<FileInfo > trackall(std::string path){
     }
     for(auto &[file,time] : myindex_files){
         if(mydir_files.find(file) == mydir_files.end()){
-            std::cout << "deleted file" << std::endl  ;
             fileinfo.status = DELETED ;
             fileinfo.filename = file ;
             fileinfo.time = time ;
             mytrackdata.push_back(fileinfo);
         }
     }
+    print(mytrackdata);
 
     return mytrackdata;
 }
@@ -97,7 +92,7 @@ std::unordered_map<std::string,time_t> load_dir(std::string path){
     std::filesystem::recursive_directory_iterator mydir(path);
     struct stat file_info ;
     for(auto & entry : mydir){
-        if(entry.path().filename() == ".mygit"){
+        if(entry.path().string().find("/.mygit/") != std::string::npos){
             continue;
         }
         if(!entry.is_regular_file()){
@@ -133,6 +128,9 @@ std::unordered_map<std::string,time_t> load_commit(std::string path , std::strin
     std::unordered_map<std::string,time_t> commitfilestimes ;
     struct stat file_info ;
     for(auto & entry : commitfiles){
+        if(entry.path().filename() == "/.mygit"){
+            continue;
+        }
         if(entry.path().filename() == "metadata"){
             continue;
         }
@@ -148,4 +146,28 @@ std::unordered_map<std::string,time_t> load_commit(std::string path , std::strin
     }
     return commitfilestimes ;
 }
+ void print(std::vector<FileInfo> mytrackdata){
+     for(auto & entry : mytrackdata){
+        if(entry.status == UNTRACKED){
+            std::cout << "new file [ " << entry.filename <<  " ]"<<std::endl;
+            std::cout << "time " << entry.time << std::endl;
+        }
+        else if(entry.status == MODIFIED){
+            std::cout << "modified file " << entry.filename << std::endl;
+            std::cout << "time " << entry.time << std::endl;
+        }
+        else if(entry.status == STAGED){
+            std::cout << "staged file " << entry.filename << std::endl;
+            std::cout << "time " << entry.time << std::endl;
+        }
+        else if(entry.status == DELETED){
+            std::cout << "deleted file " << entry.filename << std::endl;
+            std::cout << "time " << entry.time << std::endl;
+        }
+        else if(entry.status == CLEAN){
+            std::cout << "commited file " << entry.filename << std::endl;
+            std::cout << "time " << entry.time << std::endl;
+        }
+    }
+ }
 
