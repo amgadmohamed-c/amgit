@@ -4,26 +4,34 @@
 #include <filesystem>
 #include "track/track.h"
 #include <filesystem>
+#include "add/add.h"
 int main(int argc, char *argv[])
 {
-    std::string path ;
+    std::string path = std::filesystem::current_path().string();
     if (argc ==  2){
         if (std::string(argv[1])== "init"){
-      try{path = init();
-       std::cout << "directory created at " << path << std::endl; }
+            try{init();
+                std::cout << "directory created at " << path << std::endl; }
 
-      catch (const std::filesystem::filesystem_error & e ) {
-          std::cerr<<e.what() << '\n' ;
-        }}else if(std::string(argv[1])== "status"){
-            try{
-                if(path.empty()){
-                    path = std::filesystem::current_path().string();
+            catch (const std::filesystem::filesystem_error & e ) {
+                std::cerr<<e.what() << '\n' ;
+            }}else if(std::string(argv[1])== "status"){
+                try{
+                    auto mytrackdata = trackall(path);
+
+                }catch (const std::filesystem::filesystem_error & e ) {
+                    std::cerr<<e.what() << '\n' ;
                 }
-                auto mytrackdata = trackall(path);
-
+            }}
+    else if(argc == 3){
+        if(std::string(argv[1]) == "add"){
+            try{
+                add(path,argv[2]);
+                std::cout << "file added to index" <<argv[2] << std::endl;
             }catch (const std::filesystem::filesystem_error & e ) {
                 std::cerr<<e.what() << '\n' ;
             }
-    }}
+        }
+    }
     return 0;
 }
