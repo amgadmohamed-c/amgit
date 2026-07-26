@@ -1,8 +1,9 @@
 #include "log.h"
 #include "../track/track.h"
 #include <filesystem>
+#include "../utils/getroot.h"
 void log(){
-   std::filesystem::path path = std::filesystem::current_path();
+   std::filesystem::path path =  getroot();
    auto head = loadhead(path.string());
    std::cout << "head is " << head << std::endl;
    auto branch = loadbranch(path.string() ,head);

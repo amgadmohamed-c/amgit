@@ -1,7 +1,10 @@
 #include "add.h"
 #include "../track/track.h"
 #include <filesystem>
-void add(std::string path , std::string filename){
+#include "../utils/getroot.h"
+void add(std::string filename){
+std::string path = getroot();
+
 auto index = load_index(path);
 auto status = trackall(path);
 if(status.empty()){

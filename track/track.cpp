@@ -6,9 +6,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include "../utils/getroot.h"
 using namespace std;
 namespace fs = std::filesystem;
-std::vector<FileInfo > trackall(std::string path){
+std::vector<FileInfo > trackall(){
+    std::string path = getroot();
     std::vector<FileInfo> mytrackdata ;
     FileInfo fileinfo ;
     if(!fs::exists(path+"/.mygit/index") ){
