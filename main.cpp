@@ -6,6 +6,7 @@
 #include <filesystem>
 #include "add/add.h"
 #include "commit/commit.h"
+#include "log/log.h"
 int main(int argc, char *argv[])
 {
     std::string path = std::filesystem::current_path().string();
@@ -23,7 +24,15 @@ int main(int argc, char *argv[])
                 }catch (const std::filesystem::filesystem_error & e ) {
                     std::cerr<<e.what() << '\n' ;
                 }
-            }}
+            }else if(std::string(argv[1])== "log"){
+                try{
+                    log();
+                }catch (const std::filesystem::filesystem_error & e ) {
+                    std::cerr<<e.what() << '\n' ;
+                }
+            }
+
+    }
     else if(argc == 3){
         if(std::string(argv[1]) == "add"){
             try{
