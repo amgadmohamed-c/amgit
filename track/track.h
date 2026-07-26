@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include "state.h"
-std::vector<FileInfo > trackall();
+TrackResult trackall();
 
 std::unordered_map<std::string,time_t> load_index(std::string path);
 

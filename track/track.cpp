@@ -9,77 +9,103 @@
 #include "../utils/getroot.h"
 using namespace std;
 namespace fs = std::filesystem;
-std::vector<FileInfo > trackall(){
+TrackResult trackall() {
     std::string path = getroot();
-    std::vector<FileInfo> mytrackdata ;
-    FileInfo fileinfo ;
-    if(!fs::exists(path+"/.mygit/index") ){
-        std::ofstream index(path+"/.mygit/index");
+
+    if (!fs::exists(path + "/.mygit/index")) {
+        std::ofstream(path + "/.mygit/index");
     }
 
+    auto mydir_files   = load_dir(path);
+    auto myindex_files = load_index(path);
 
-    auto mydir_files =load_dir(path);
-    auto myindex_files =load_index(path) ;
-    auto head = loadhead(path) ;
-    auto branch = loadbranch(path,head) ;
-    std::unordered_map<std::string,time_t> commit ;
-    if(!branch.empty()){
+    auto head   = loadhead(path);
+    auto branch = loadbranch(path, head);
 
-        commit = load_commit(path,branch) ;
+    std::unordered_map<std::string, time_t> lastcommitindex;
+
+    if (!branch.empty()) {
+        lastcommitindex =
+            load_parent_index(path + "/.mygit/objects/" + branch + "/index");
     }
 
+    TrackResult result;
+    FileInfo fileinfo;
 
-    for(auto & entry : mydir_files){
-        if(entry.first.find("/.mygit/") != std::string::npos)
+    for (auto& [file, time] : mydir_files) {
+
+        auto index_it = myindex_files.find(file);
+
+        // Not in index -> UNTRACKED
+        if (index_it == myindex_files.end()) {
+            fileinfo.status = UNTRACKED;
+            fileinfo.filename = file;
+            fileinfo.time = time;
+            result.untracked.push_back(fileinfo);
             continue;
-        auto it = myindex_files.find(entry.first) ;
-        auto it2 = commit.find(entry.first) ;
-        if(it == myindex_files.end()){
-            fileinfo.status = UNTRACKED ;
-            fileinfo.filename = entry.first ;
-            fileinfo.time = entry.second ;
-            mytrackdata.push_back(fileinfo);
-        }
-        else if(it->second != entry.second){
-            fileinfo.status = MODIFIED ;
-            fileinfo.filename = entry.first ;
-            fileinfo.time = entry.second ;
-            mytrackdata.push_back(fileinfo);
-        }
-        else if(it2==commit.end()){
-            fileinfo.status = STAGED ;
-            fileinfo.filename = entry.first ;
-            fileinfo.time = entry.second ;
-            mytrackdata.push_back(fileinfo);
-
         }
 
-        else if(it2 != commit.end() && it2->second != entry.second){
-            fileinfo.status = STAGED ;
-            fileinfo.filename = entry.first ;
-            fileinfo.time = entry.second ;
-            mytrackdata.push_back(fileinfo);
-        }else{
+        // Working tree differs from index -> MODIFIED
+        if (index_it->second != time) {
+            fileinfo.status = MODIFIED;
+            fileinfo.filename = file;
+            fileinfo.time = time;
+            result.modified.push_back(fileinfo);
+            continue;
+        }
 
-            fileinfo.status = CLEAN ;
-            fileinfo.filename = entry.first ;
-            fileinfo.time = entry.second ;
-            mytrackdata.push_back(fileinfo);
+        auto head_it = lastcommitindex.find(file);
+
+        // File not in HEAD or timestamps differ -> STAGED
+        if (head_it == lastcommitindex.end() ||
+            head_it->second != index_it->second) {
+
+            fileinfo.status = STAGED;
+            fileinfo.filename = file;
+            fileinfo.time = time;
+            result.staged.push_back(fileinfo);
+            continue;
+        }
+
+        // Otherwise -> CLEAN
+        fileinfo.status = CLEAN;
+        fileinfo.filename = file;
+        fileinfo.time = time;
+        result.cleaned.push_back(fileinfo);
+    }
+
+    // Deleted files
+    for (auto& [file, time] : myindex_files) {
+        if (mydir_files.find(file) == mydir_files.end()) {
+
+            fileinfo.status = DELETED;
+            fileinfo.filename = file;
+            fileinfo.time = time;
+
+            result.deleted.push_back(fileinfo);
         }
     }
-    for(auto &[file,time] : myindex_files){
-        if(mydir_files.find(file) == mydir_files.end()){
-            fileinfo.status = DELETED ;
-            fileinfo.filename = file ;
-            fileinfo.time = time ;
-            mytrackdata.push_back(fileinfo);
-        }
-    }
-    print(mytrackdata);
 
-    return mytrackdata;
+    // Pretty output
+    if (result.untracked.empty() &&
+        result.modified.empty() &&
+        result.staged.empty() &&
+        result.deleted.empty()) {
+
+        std::cout << "Working tree clean, nothing to commit."
+                  << std::endl;
+    } else {
+        print(result.untracked);
+        print(result.modified);
+        print(result.staged);
+        print(result.deleted);
+    }
+
+    return result;
 }
 std::unordered_map<std::string,time_t> load_index(std::string path){
+
+
     std::unordered_map<std::string,time_t> index ;
     std::ifstream indexfile(path+"/.mygit/index");
     std::string filename ;
@@ -160,8 +186,8 @@ std::unordered_map<std::string,time_t> load_commit(std::string path , std::strin
     }
     return commitfilestimes ;
 }
- void print(std::vector<FileInfo> mytrackdata){
-     for(auto & entry : mytrackdata){
+void print(std::vector<FileInfo> mytrackdata){
+    for(auto & entry : mytrackdata){
         if(entry.status == UNTRACKED){
             std::cout << "new file [ " << entry.filename <<  " ]"<<std::endl;
             std::cout << "time " << entry.time << std::endl;
@@ -183,5 +209,5 @@ std::unordered_map<std::string,time_t> load_commit(std::string path , std::strin
             std::cout << "time " << entry.time << std::endl;
         }
     }
- }
+}
 
