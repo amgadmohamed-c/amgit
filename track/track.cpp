@@ -89,6 +89,18 @@ std::unordered_map<std::string,time_t> load_index(std::string path){
     }
     return index ;
 }
+
+std::unordered_map<std::string,time_t> load_parent_index(std::string path){
+    std::unordered_map<std::string,time_t> index ;
+    std::ifstream indexfile(path);
+    std::string filename ;
+    time_t time ;
+    while(indexfile >> filename >> time){
+        index[filename] = time ;
+    }
+    return index ;
+}
+
 std::unordered_map<std::string,time_t> load_dir(std::string path){
     std::unordered_map<std::string,time_t> dirfiles ;
     std::filesystem::recursive_directory_iterator mydir(path);

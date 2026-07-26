@@ -6,7 +6,7 @@ void add(std::string filename){
 std::string path = getroot();
 
 auto index = load_index(path);
-auto status = trackall(path);
+auto status = trackall();
 if(status.empty()){
     std::cout << "nothing to add" << std::endl;
     return;

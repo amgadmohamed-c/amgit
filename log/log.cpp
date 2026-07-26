@@ -3,10 +3,10 @@
 #include <filesystem>
 #include "../utils/getroot.h"
 void log(){
-   std::filesystem::path path =  getroot();
-   auto head = loadhead(path.string());
+    std::string path=  getroot();
+   auto head = loadhead(path);
    std::cout << "head is " << head << std::endl;
-   auto branch = loadbranch(path.string() ,head);
+   auto branch = loadbranch(path,head);
    while(!branch.empty()){
      print_metadata(branch);
 
@@ -14,7 +14,7 @@ void log(){
    }
 }
 void print_metadata(std::string commit){
-    std::filesystem::path path = std::filesystem::current_path();
+    std::string path = getroot() ;
     std::filesystem::path metadata = std::filesystem::path(path)/".mygit/objects"/commit/"metadata";
     std::ifstream file(metadata.string());
     if(file.is_open()){
@@ -26,8 +26,9 @@ void print_metadata(std::string commit){
     }
 }
 std::string get_parent(std::string commit){
-    std::filesystem::path path = std::filesystem::current_path();
+    std::string path = getroot() ;
     std::filesystem::path metadata = std::filesystem::path(path)/".mygit/objects"/commit/"metadata";
+
     std::ifstream file(metadata.string());
     std::string parent;
     if(file.is_open()){

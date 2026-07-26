@@ -15,6 +15,21 @@ void commit(std::string message ){
         std::cout << "No files to commit" << std::endl;
         return;
     }
+    std::string curret_head = loadhead(path);
+    std::string ParentCommit ;
+    std::ifstream writeref(path+"/.mygit/"+curret_head);
+    if(writeref.is_open()){
+        std::getline(writeref,ParentCommit);
+        writeref.close();
+
+    }
+    if(!ParentCommit.empty()){
+   auto  parentindex= load_parent_index(path+"/.mygit/objects/"+ParentCommit+"/index");
+   if(parentindex == index){
+       std::cout << "nothing to commit" << std::endl;
+       return;
+   }
+    }
     std::ifstream file(path+"/.mygit/commit_count");
     std::string commitcount;
     if(file.is_open()){
@@ -37,20 +52,14 @@ void commit(std::string message ){
 
 
     }
-    std::string curret_head = loadhead(path);
-    std::string ParentCommit ;
-    std::ifstream writeref(path+"/.mygit/"+curret_head);
-    if(writeref.is_open()){
-        std::getline(writeref,ParentCommit);
-        writeref.close();
-    }
-
 
     std::ofstream commitcountfile(path+"/.mygit/commit_count");
     if(commitcountfile.is_open()){
         commitcountfile << commitcount << std::endl;
         commitcountfile.close();
     }
+
+    std::filesystem::copy_file(path+"/.mygit/index",path+"/.mygit/objects/"+commitcount+"/index" , std::filesystem::copy_options::overwrite_existing);
     std::ofstream metadata(path+"/.mygit" +"/objects/" + commitcount + "/metadata");
     if(metadata.is_open()){
         metadata << "commit :" << commitcount << std::endl;
@@ -69,6 +78,6 @@ void commit(std::string message ){
         std::cout << "could not create ref nor open file" << std::endl;
 
     }
-    std::cout << "Committed as " << message << std::endl;
+    std::cout << "Committed as :  " << message << std::endl;
 }
 

@@ -8,6 +8,8 @@ std::vector<FileInfo > trackall();
 
 std::unordered_map<std::string,time_t> load_index(std::string path);
 
+std::unordered_map<std::string,time_t> load_parent_index(std::string path);
+
 std::unordered_map<std::string,time_t> load_dir(std::string path);
 
 std::unordered_map<std::string,time_t > compareworkingwithdir(std::unordered_map<std::string,time_t> index, std::unordered_map<std::string,time_t> dir) ;

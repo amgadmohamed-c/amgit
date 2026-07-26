@@ -7,9 +7,10 @@
 #include "add/add.h"
 #include "commit/commit.h"
 #include "log/log.h"
+#include "utils/getroot.h"
 int main(int argc, char *argv[])
 {
-    std::string path = std::filesystem::current_path().string();
+    std::string path = getroot();
     if (argc ==  2){
         if (std::string(argv[1])== "init"){
             try{init();
@@ -19,7 +20,7 @@ int main(int argc, char *argv[])
                 std::cerr<<e.what() << '\n' ;
             }}else if(std::string(argv[1])== "status"){
                 try{
-                    auto mytrackdata = trackall(path);
+                    auto mytrackdata = trackall();
 
                 }catch (const std::filesystem::filesystem_error & e ) {
                     std::cerr<<e.what() << '\n' ;
@@ -36,7 +37,7 @@ int main(int argc, char *argv[])
     else if(argc == 3){
         if(std::string(argv[1]) == "add"){
             try{
-                add(path,argv[2]);
+                add(argv[2]);
                 std::cout << "file added to index" <<argv[2] << std::endl;
             }catch (const std::filesystem::filesystem_error & e ) {
                 std::cerr<<e.what() << '\n' ;
