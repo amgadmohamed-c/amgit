@@ -28,12 +28,18 @@ std::string init(){
     }
     std::ofstream file(HEAD);
     if(file.is_open()){
-        file << "ref: refs/heads/main\n";
+        file << "refs/heads/main\n";
         file.close();
     }
     else{
         printf("could not create HEAD");
         return path ;
+    }
+    std::ofstream commitcount(path+"/.mygit/commit_count");
+    if(commitcount.is_open()){
+        commitcount << "0\n";
+        commitcount.close();
+        commitcount.close();
     }
  return path;
 
