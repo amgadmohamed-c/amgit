@@ -58,7 +58,7 @@ TrackResult trackall() {
 
         // File not in HEAD or timestamps differ -> STAGED
         if (head_it == lastcommitindex.end() ||
-            head_it->second != index_it->second) {
+                head_it->second != index_it->second) {
 
             fileinfo.status = STAGED;
             fileinfo.filename = file;
@@ -88,12 +88,12 @@ TrackResult trackall() {
 
     // Pretty output
     if (result.untracked.empty() &&
-        result.modified.empty() &&
-        result.staged.empty() &&
-        result.deleted.empty()) {
+            result.modified.empty() &&
+            result.staged.empty() &&
+            result.deleted.empty()) {
 
         std::cout << "Working tree clean, nothing to commit."
-                  << std::endl;
+            << std::endl;
     } else {
         print(result.untracked);
         print(result.modified);
@@ -186,27 +186,43 @@ std::unordered_map<std::string,time_t> load_commit(std::string path , std::strin
     }
     return commitfilestimes ;
 }
-void print(std::vector<FileInfo> mytrackdata){
+void print(std::vector<FileInfo> mytrackdata ){
+    if(!mytrackdata.empty()){
+        if(mytrackdata[0].status == UNTRACKED){
+            std::cout << "untracked: " << std::endl;
+        }
+        else if(mytrackdata[0].status == MODIFIED){
+            std::cout << "modified:" << std::endl;
+            std::cout<<endl;
+        }
+        else if(mytrackdata[0].status == STAGED){
+            std::cout << "staged:" << std::endl;
+            std::cout<<endl;
+        }
+        else if(mytrackdata[0].status == DELETED){
+            std::cout << "deleted:" << std::endl;
+            std::cout<<endl;
+        }
+        else if(mytrackdata[0].status == CLEAN){
+            std::cout << "commited:" << std::endl;
+            std::cout<<endl;
+        }
+        else{
+            std::cout << "unknown:" << std::endl;
+        }
+    }
     for(auto & entry : mytrackdata){
         if(entry.status == UNTRACKED){
-            std::cout << "new file [ " << entry.filename <<  " ]"<<std::endl;
-            std::cout << "time " << entry.time << std::endl;
-        }
-        else if(entry.status == MODIFIED){
-            std::cout << "modified file " << entry.filename << std::endl;
-            std::cout << "time " << entry.time << std::endl;
-        }
-        else if(entry.status == STAGED){
-            std::cout << "staged file " << entry.filename << std::endl;
-            std::cout << "time " << entry.time << std::endl;
-        }
-        else if(entry.status == DELETED){
-            std::cout << "deleted file " << entry.filename << std::endl;
-            std::cout << "time " << entry.time << std::endl;
-        }
-        else if(entry.status == CLEAN){
-            std::cout << "commited file " << entry.filename << std::endl;
-            std::cout << "time " << entry.time << std::endl;
+
+            std::cout << "?    " << entry.filename << "  " << entry.time<<  std::endl;
+        }else if(entry.status == MODIFIED){
+            std::cout << "^    " << entry.filename << "  " << entry.time<<  std::endl;
+        }else if(entry.status == STAGED){
+            std::cout << "+    " << entry.filename << "  " << entry.time<<  std::endl;
+        }else if(entry.status == DELETED){
+            std::cout << "-    " << entry.filename << "  " << entry.time<<  std::endl;
+        }else if(entry.status == CLEAN){
+            std::cout << "*    " << entry.filename << "  " << entry.time<<  std::endl;
         }
     }
 }

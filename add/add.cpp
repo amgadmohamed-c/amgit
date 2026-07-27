@@ -26,12 +26,6 @@ for(auto & entry : result.modified){
     }
 }
 
-   for(auto & entry : result.deleted){
-       cout << "delete " << entry.filename << endl;
-   }
-    for(auto & entry : result.cleaned){
-        cout << "already commited " << entry.filename << endl;
-    }
 std::ofstream indexfile(path+"/.mygit/index");
 for(auto & [file,time] : index){
     indexfile << file << " " << time << std::endl;

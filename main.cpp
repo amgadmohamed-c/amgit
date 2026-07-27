@@ -8,6 +8,7 @@
 #include "commit/commit.h"
 #include "log/log.h"
 #include "utils/getroot.h"
+#include "branch/branch.h"
 int main(int argc, char *argv[])
 {
     std::string path = getroot();
@@ -28,6 +29,12 @@ int main(int argc, char *argv[])
             }else if(std::string(argv[1])== "log"){
                 try{
                     log();
+                }catch (const std::filesystem::filesystem_error & e ) {
+                    std::cerr<<e.what() << '\n' ;
+                }
+            }else if(std::string(argv[1])== "branch"){
+                try{
+                    branch();
                 }catch (const std::filesystem::filesystem_error & e ) {
                     std::cerr<<e.what() << '\n' ;
                 }
