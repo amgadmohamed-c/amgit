@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <vector>
 #include "../utils/getroot.h"
+#include "../utils/hash_file.h"
 using namespace std;
 namespace fs = std::filesystem;
 TrackResult trackall() {
@@ -22,7 +23,7 @@ TrackResult trackall() {
     auto head   = loadhead(path);
     auto branch = loadbranch(path, head);
 
-    std::unordered_map<std::string, time_t> lastcommitindex;
+    std::unordered_map<std::string, std::string> lastcommitindex;
 
     if (!branch.empty()) {
         lastcommitindex =
@@ -32,7 +33,7 @@ TrackResult trackall() {
     TrackResult result;
     FileInfo fileinfo;
 
-    for (auto& [file, time] : mydir_files) {
+    for (auto& [file, hash] : mydir_files) {
 
         auto index_it = myindex_files.find(file);
 
@@ -40,16 +41,16 @@ TrackResult trackall() {
         if (index_it == myindex_files.end()) {
             fileinfo.status = UNTRACKED;
             fileinfo.filename = file;
-            fileinfo.time = time;
+            fileinfo.hash = hash;
             result.untracked.push_back(fileinfo);
             continue;
         }
 
         // Working tree differs from index -> MODIFIED
-        if (index_it->second != time) {
+        if (index_it->second != hash) {
             fileinfo.status = MODIFIED;
             fileinfo.filename = file;
-            fileinfo.time = time;
+            fileinfo.hash =  hash;
             result.modified.push_back(fileinfo);
             continue;
         }
@@ -58,11 +59,11 @@ TrackResult trackall() {
 
         // File not in HEAD or timestamps differ -> STAGED
         if (head_it == lastcommitindex.end() ||
-                head_it->second != index_it->second) {
+                head_it->second!= index_it->second) {
 
             fileinfo.status = STAGED;
             fileinfo.filename = file;
-            fileinfo.time = time;
+            fileinfo.hash = hash;
             result.staged.push_back(fileinfo);
             continue;
         }
@@ -70,17 +71,17 @@ TrackResult trackall() {
         // Otherwise -> CLEAN
         fileinfo.status = CLEAN;
         fileinfo.filename = file;
-        fileinfo.time = time;
+        fileinfo.hash = hash;
         result.cleaned.push_back(fileinfo);
     }
 
     // Deleted files
-    for (auto& [file, time] : myindex_files) {
+    for (auto& [file, hash] : myindex_files) {
         if (mydir_files.find(file) == mydir_files.end()) {
 
             fileinfo.status = DELETED;
             fileinfo.filename = file;
-            fileinfo.time = time;
+            fileinfo.hash =hash ;
 
             result.deleted.push_back(fileinfo);
         }
@@ -103,32 +104,32 @@ TrackResult trackall() {
 
     return result;
 }
-std::unordered_map<std::string,time_t> load_index(std::string path){
+std::unordered_map<std::string,std::string> load_index(std::string path){
 
 
-    std::unordered_map<std::string,time_t> index ;
+    std::unordered_map<std::string,std::string> index ;
     std::ifstream indexfile(path+"/.mygit/index");
     std::string filename ;
-    time_t time ;
-    while(indexfile >> filename >> time){
-        index[filename] = time ;
+    std::string hash ;
+    while(indexfile >> filename >> hash){
+        index[filename] = hash;
     }
     return index ;
 }
 
-std::unordered_map<std::string,time_t> load_parent_index(std::string path){
-    std::unordered_map<std::string,time_t> index ;
+std::unordered_map<std::string,std::string> load_parent_index(std::string path){
+    std::unordered_map<std::string,std::string> index ;
     std::ifstream indexfile(path);
     std::string filename ;
-    time_t time ;
-    while(indexfile >> filename >> time){
-        index[filename] = time ;
+    std::string hash ;
+    while(indexfile >> filename >> hash){
+        index[filename] = hash;
     }
-    return index ;
+    return index;
 }
 
-std::unordered_map<std::string,time_t> load_dir(std::string path){
-    std::unordered_map<std::string,time_t> dirfiles ;
+std::unordered_map<std::string,std::string> load_dir(std::string path){
+    std::unordered_map<std::string,std::string> dirfiles ;
     std::filesystem::recursive_directory_iterator mydir(path);
     struct stat file_info ;
     for(auto & entry : mydir){
@@ -141,7 +142,7 @@ std::unordered_map<std::string,time_t> load_dir(std::string path){
             cout << "could not stat file" << entry.path().string() << endl;
         }else{
             auto relativepath = fs::relative(entry.path(),path);
-            dirfiles[relativepath.string() ] = file_info.st_mtime;
+            dirfiles[relativepath.string() ] = hash_file(entry.path().string());
         }
 
     }
@@ -161,11 +162,11 @@ std::string loadbranch(std::string path , std::string branch){
     return commit ;
 }
 
-std::unordered_map<std::string,time_t> load_commit(std::string path , std::string commit){
+std::unordered_map<std::string,std::string> load_commit(std::string path , std::string commit){
     std::filesystem::path commitpath = path+"/.mygit/objects/"+commit ;
     std::filesystem::recursive_directory_iterator commitfiles(commitpath);
 
-    std::unordered_map<std::string,time_t> commitfilestimes ;
+    std::unordered_map<std::string,std::string> commitfileshash ;
     struct stat file_info ;
     for(auto & entry : commitfiles){
         if(entry.path().filename() == "/.mygit"){
@@ -181,10 +182,10 @@ std::unordered_map<std::string,time_t> load_commit(std::string path , std::strin
             cout << "could not stat file" << entry.path().string() << endl;
         }else{
             auto relativepath = fs::relative(entry.path(),commitpath);
-            commitfilestimes[relativepath.string()] = file_info.st_mtime;
+            commitfileshash[relativepath.string()] = hash_file(entry.path().string());
         }
     }
-    return commitfilestimes ;
+    return commitfileshash ;
 }
 void print(std::vector<FileInfo> mytrackdata ){
     if(!mytrackdata.empty()){
@@ -214,15 +215,15 @@ void print(std::vector<FileInfo> mytrackdata ){
     for(auto & entry : mytrackdata){
         if(entry.status == UNTRACKED){
 
-            std::cout << "?    " << entry.filename << "  " << entry.time<<  std::endl;
+            std::cout << "?    " << entry.filename << "  " << entry.hash<<  std::endl;
         }else if(entry.status == MODIFIED){
-            std::cout << "^    " << entry.filename << "  " << entry.time<<  std::endl;
+            std::cout << "^    " << entry.filename << "  " << entry.hash<<  std::endl;
         }else if(entry.status == STAGED){
-            std::cout << "+    " << entry.filename << "  " << entry.time<<  std::endl;
+            std::cout << "+    " << entry.filename << "  " << entry.hash<<  std::endl;
         }else if(entry.status == DELETED){
-            std::cout << "-    " << entry.filename << "  " << entry.time<<  std::endl;
+            std::cout << "-    " << entry.filename << "  " << entry.hash <<  std::endl;
         }else if(entry.status == CLEAN){
-            std::cout << "*    " << entry.filename << "  " << entry.time<<  std::endl;
+            std::cout << "*    " << entry.filename << "  " << entry.hash<<  std::endl;
         }
     }
 }

@@ -4,7 +4,11 @@
 #include <string>
 #include "../track/track.h"
 #include "../utils/getroot.h"
+#include "../utils/hash_file.h"
+#include "../utils/sha1.hpp"
+#include <chrono>
 void commit(std::string message ){
+
     std::string path = getroot();
     if(path.empty()){
         std::cout << "not in a mygit repository" << std::endl;
@@ -30,22 +34,18 @@ void commit(std::string message ){
        return;
    }
     }
-    std::ifstream file(path+"/.mygit/commit_count");
-    std::string commitcount;
-    if(file.is_open()){
-        std::getline(file,commitcount);
-        file.close();
-    }
-    int newcommitcount = 0 ;
-    if(!commitcount.empty()){
-        newcommitcount = std::stoi(commitcount);
-    }
-    commitcount = std::to_string(newcommitcount+1);
-    std::filesystem::create_directory(path+"/.mygit/objects/"+commitcount);
+    auto now = std::chrono::system_clock::now();
+    std::time_t time_now = std::chrono::system_clock::to_time_t(now);
+    std::tm local_tm = *std::localtime(&time_now);
+   SHA1 sha1;
+   std::string commithash = std::to_string(local_tm.tm_year)+std::to_string(local_tm.tm_mon)+std::to_string(local_tm.tm_mday)+std::to_string(local_tm.tm_hour)+std::to_string(local_tm.tm_min)+std::to_string(local_tm.tm_sec)+message + ParentCommit ;
+   sha1.update(commithash)  ;
+   commithash = sha1.final();
+    std::filesystem::create_directory(path+"/.mygit/objects/"+commithash);
 
     for(auto& file : index){
         std::filesystem::path source = std::filesystem::path(path)/file.first ;
-        std::filesystem::path destination = std::filesystem::path(path)/".mygit/objects"/commitcount/file.first;
+        std::filesystem::path destination = std::filesystem::path(path)/".mygit/objects"/commithash/file.first;
         filesystem::create_directories(destination.parent_path());
         std::filesystem::copy_file(source,destination , std::filesystem::copy_options::overwrite_existing);
 
@@ -53,16 +53,11 @@ void commit(std::string message ){
 
     }
 
-    std::ofstream commitcountfile(path+"/.mygit/commit_count");
-    if(commitcountfile.is_open()){
-        commitcountfile << commitcount << std::endl;
-        commitcountfile.close();
-    }
 
-    std::filesystem::copy_file(path+"/.mygit/index",path+"/.mygit/objects/"+commitcount+"/index" , std::filesystem::copy_options::overwrite_existing);
-    std::ofstream metadata(path+"/.mygit" +"/objects/" + commitcount + "/metadata");
+    std::filesystem::copy_file(path+"/.mygit/index",path+"/.mygit/objects/"+commithash+"/index" , std::filesystem::copy_options::overwrite_existing);
+    std::ofstream metadata(path+"/.mygit" +"/objects/" + commithash + "/metadata");
     if(metadata.is_open()){
-        metadata << "commit :" << commitcount << std::endl;
+        metadata << "commit :" << commithash << std::endl;
         metadata << "parent :" << ParentCommit << std::endl;
         metadata << "message :" << message << std::endl  ;
         metadata << "time :" << std::to_string(time(nullptr)) << std::endl;
@@ -71,7 +66,7 @@ void commit(std::string message ){
 
     std::ofstream ref(path+"/.mygit/"+curret_head);
     if(ref.is_open()){
-        ref << commitcount << std::endl;
+        ref << commithash << std::endl;
         ref.close();
     }
     else{

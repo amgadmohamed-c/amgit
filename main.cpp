@@ -45,7 +45,6 @@ int main(int argc, char *argv[])
         if(std::string(argv[1]) == "add"){
             try{
                 add(argv[2]);
-                std::cout << "file added to index" <<argv[2] << std::endl;
             }catch (const std::filesystem::filesystem_error & e ) {
                 std::cerr<<e.what() << '\n' ;
             }

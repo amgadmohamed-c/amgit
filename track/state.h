@@ -16,7 +16,7 @@ enum state{
 struct FileInfo{
     std::string filename ;
     state status ;
-    time_t time ;
+    std::string hash ;
 };
 struct TrackResult{
     std::vector<FileInfo> untracked;

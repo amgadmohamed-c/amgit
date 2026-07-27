@@ -1,4 +1,4 @@
 
 
 #include <string>
-std::string hash_file(std::string filebuffr);
+std::string hash_file(std::string filename);
