@@ -70,6 +70,11 @@ void checkout(std::string branchname){
             std::filesystem::create_directories(destination.parent_path());
             std::filesystem::copy_file(entry.path(),destination ,std::filesystem::copy_options::overwrite_existing);
         }
+        std::filesystem::copy_file(
+                path + "/.mygit/objects/" + target + "/index",
+                path + "/.mygit/index",
+                std::filesystem::copy_options::overwrite_existing
+                );
         std::ofstream file(path + "/.mygit/HEAD");
         if (file.is_open()){
             file << "refs/heads/"+ branchname;

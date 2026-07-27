@@ -1,6 +1,7 @@
 #include "add.h"
 #include "../track/track.h"
 #include "../utils/getroot.h"
+#include "../utils/sha1.hpp"
 
 void add(std::string filename){
 std::string path = getroot();

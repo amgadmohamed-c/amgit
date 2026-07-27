@@ -60,7 +60,13 @@ int main(int argc, char *argv[])
                 createbranch(argv[2]) ;
             }catch(const std::filesystem::filesystem_error & e){
                 std::cerr<<e.what() << '\n' ;
-            }}
+            }}else if(std::string(argv[1]) == "checkout"){
+                try{
+                    checkout(argv[2]);
+                }catch(const std::filesystem::filesystem_error & e){
+                    std::cerr<<e.what() << '\n' ;
+                }
+            }
     }
     return 0;
 }
