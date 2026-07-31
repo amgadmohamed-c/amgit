@@ -175,6 +175,9 @@ std::unordered_map<std::string,std::string> load_commit(std::string path , std::
         if(entry.path().filename() == "metadata"){
             continue;
         }
+        if(entry.path().filename() == "index"){
+            continue;
+        }
         if(!entry.is_regular_file()){
             continue;
         }

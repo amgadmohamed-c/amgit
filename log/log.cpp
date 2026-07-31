@@ -54,7 +54,6 @@ void log(){
 
 
 
-
 void print_metadata(std::string commit)
 {
     std::string path = getroot();
@@ -67,47 +66,48 @@ void print_metadata(std::string commit)
     if(!file.is_open())
         return;
 
-    std::string parent;
+    std::string parent1;
+    std::string parent2;
     std::string message;
     std::string time_string;
-
     std::string line;
 
-    while(std::getline(file,line))
+    while(std::getline(file, line))
     {
-        if(line.find("parent :") != std::string::npos)
+        if(line.find("parent1 :") != std::string::npos)
         {
-            parent = line.substr(
-                line.find(':') + 1
-            );
+            parent1 =
+                line.substr(line.find(':') + 1);
 
-            parent.erase(
+            parent1.erase(
                 0,
-                parent.find_first_not_of(' ')
+                parent1.find_first_not_of(' ')
             );
         }
-
-        else if(
-            line.find("message :")
-            != std::string::npos)
+        else if(line.find("parent2 :") != std::string::npos)
         {
-            message = line.substr(
-                line.find(':') + 1
+            parent2 =
+                line.substr(line.find(':') + 1);
+
+            parent2.erase(
+                0,
+                parent2.find_first_not_of(' ')
             );
+        }
+        else if(line.find("message :") != std::string::npos)
+        {
+            message =
+                line.substr(line.find(':') + 1);
 
             message.erase(
                 0,
                 message.find_first_not_of(' ')
             );
         }
-
-        else if(
-            line.find("time :")
-            != std::string::npos)
+        else if(line.find("time :") != std::string::npos)
         {
-            time_string = line.substr(
-                line.find(':') + 1
-            );
+            time_string =
+                line.substr(line.find(':') + 1);
 
             time_string.erase(
                 0,
@@ -116,9 +116,8 @@ void print_metadata(std::string commit)
         }
     }
 
-    std::cout
-        << "* Commit : "
-        << commit.substr(0,7);
+    std::cout << "* Commit : "
+              << commit.substr(0,7);
 
     if(commit ==
        loadbranch(getroot(),
@@ -137,31 +136,38 @@ void print_metadata(std::string commit)
 
     if(!time_string.empty())
     {
-        time_t t =
-            std::stoll(time_string);
+        time_t t = std::stoll(time_string);
 
-        std::string date =
-            std::ctime(&t);
+        std::string date = std::ctime(&t);
 
         date.pop_back();
 
         std::cout
-            << "| Date    : "
+            << "| Date     : "
             << date
             << '\n';
     }
 
-    if(!parent.empty())
+    if(!parent1.empty())
     {
         std::cout
-            << "| Parent  : "
-            << parent.substr(0,7)
+            << "| Parent1  : "
+            << parent1.substr(0,7)
             << '\n';
     }
-    else
+
+    if(!parent2.empty())
     {
         std::cout
-            << "| Parent  : None\n";
+            << "| Parent2  : "
+            << parent2.substr(0,7)
+            << '\n';
+    }
+
+    if(parent1.empty() && parent2.empty())
+    {
+        std::cout
+            << "| Parent   : None\n";
     }
 
     std::cout
@@ -174,28 +180,45 @@ void print_metadata(std::string commit)
 }
 
 
+std::string get_parent(std::string commit)
+{
+    std::string path = getroot();
 
-
-std::string get_parent(std::string commit){
-    std::string path = getroot() ;
-    std::filesystem::path metadata = std::filesystem::path(path)/".mygit/objects"/commit/"metadata";
+    std::filesystem::path metadata =
+        std::filesystem::path(path)
+        / ".mygit/objects"
+        / commit
+        / "metadata";
 
     std::ifstream file(metadata.string());
+
     std::string parent;
-    if(file.is_open()){
+
+    if(file.is_open())
+    {
         std::string line;
-        while(std::getline(file,line)){
-            if(line.find("parent :")!=std::string::npos){
-                parent = line.substr(line.find(':') + 1);
-                parent.erase(0, parent.find_first_not_of(' '));
+
+        while(std::getline(file, line))
+        {
+            if(line.find("parent1 :") != std::string::npos)
+            {
+                parent =
+                    line.substr(line.find(':') + 1);
+
+                parent.erase(
+                    0,
+                    parent.find_first_not_of(' ')
+                );
+
+                break;
             }
         }
+
         file.close();
     }
+
     return parent;
 }
-
-
 
 
 
@@ -205,38 +228,41 @@ CommitNode load_commit_info(std::string hash)
     node.hash = hash;
 
     std::ifstream file(
-            getroot()+"/.mygit/objects/"+hash+"/metadata"
-            );
+        getroot() +
+        "/.mygit/objects/" +
+        hash +
+        "/metadata"
+    );
 
     std::string line;
 
-    while(std::getline(file,line))
+    while(std::getline(file, line))
     {
-        if(line.find("parent :") != std::string::npos)
+        if(line.find("parent1 :") != std::string::npos)
         {
-            node.parent = line.substr(line.find(':')+1);
+            node.parent =
+                line.substr(line.find(':') + 1);
+
             node.parent.erase(
-                    0,
-                    node.parent.find_first_not_of(' ')
-                    );
+                0,
+                node.parent.find_first_not_of(' ')
+            );
         }
 
-        if(line.find("merge_parent :") != std::string::npos)
+        else if(line.find("parent2 :") != std::string::npos)
         {
             node.merge_parent =
-                line.substr(line.find(':')+1);
+                line.substr(line.find(':') + 1);
 
             node.merge_parent.erase(
-                    0,
-                    node.merge_parent.find_first_not_of(' ')
-                    );
+                0,
+                node.merge_parent.find_first_not_of(' ')
+            );
         }
     }
 
     return node;
 }
-
-
 
 void print_graph(std::string commit,int depth )
 {

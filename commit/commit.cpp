@@ -21,26 +21,67 @@ void commit(std::string message ){
     }
     std::string curret_head = loadhead(path);
     std::string ParentCommit ;
-    std::ifstream writeref(path+"/.mygit/"+curret_head);
-    if(writeref.is_open()){
-        std::getline(writeref,ParentCommit);
-        writeref.close();
+    std::string ParentCommit2;
 
+    if(std::filesystem::exists(path+"/.mygit/MERGE_HEAD"))
+    {
+        std::ifstream merge(
+                path+"/.mygit/MERGE_HEAD");
+
+        std::getline(merge, ParentCommit);
+        std::getline(merge, ParentCommit2);
+
+        merge.close();
     }
-    if(!ParentCommit.empty()){
-   auto  parentindex= load_parent_index(path+"/.mygit/objects/"+ParentCommit+"/index");
-   if(parentindex == index){
-       std::cout << "nothing to commit" << std::endl;
-       return;
-   }
+    else
+    {
+        std::ifstream writeref(
+                path+"/.mygit/"+curret_head);
+
+        if(writeref.is_open())
+        {
+            std::getline(
+                    writeref,
+                    ParentCommit);
+
+            writeref.close();
+        }
+    }
+    if(!ParentCommit.empty() &&
+            ParentCommit2.empty())
+    {
+        auto parentindex =
+            load_parent_index(
+                    path +
+                    "/.mygit/objects/" +
+                    ParentCommit +
+                    "/index");
+
+        if(parentindex == index)
+        {
+            std::cout
+                << "nothing to commit"
+                << std::endl;
+
+            return;
+        }
     }
     auto now = std::chrono::system_clock::now();
     std::time_t time_now = std::chrono::system_clock::to_time_t(now);
     std::tm local_tm = *std::localtime(&time_now);
-   SHA1 sha1;
-   std::string commithash = std::to_string(local_tm.tm_year)+std::to_string(local_tm.tm_mon)+std::to_string(local_tm.tm_mday)+std::to_string(local_tm.tm_hour)+std::to_string(local_tm.tm_min)+std::to_string(local_tm.tm_sec)+message + ParentCommit ;
-   sha1.update(commithash)  ;
-   commithash = sha1.final();
+    SHA1 sha1;
+    std::string commithash =
+        std::to_string(local_tm.tm_year)
+        + std::to_string(local_tm.tm_mon)
+        + std::to_string(local_tm.tm_mday)
+        + std::to_string(local_tm.tm_hour)
+        + std::to_string(local_tm.tm_min)
+        + std::to_string(local_tm.tm_sec)
+        + message
+        + ParentCommit
+        + ParentCommit2;
+    sha1.update(commithash)  ;
+    commithash = sha1.final();
     std::filesystem::create_directory(path+"/.mygit/objects/"+commithash);
 
     for(auto& file : index){
@@ -58,7 +99,16 @@ void commit(std::string message ){
     std::ofstream metadata(path+"/.mygit" +"/objects/" + commithash + "/metadata");
     if(metadata.is_open()){
         metadata << "commit :" << commithash << std::endl;
-        metadata << "parent :" << ParentCommit << std::endl;
+        metadata << "parent1 :"
+            << ParentCommit
+            << std::endl;
+
+        if(!ParentCommit2.empty())
+        {
+            metadata << "parent2 :"
+                << ParentCommit2
+                << std::endl;
+        }
         metadata << "message :" << message << std::endl  ;
         metadata << "time :" << std::to_string(time(nullptr)) << std::endl;
         metadata.close();
@@ -74,5 +124,22 @@ void commit(std::string message ){
 
     }
     std::cout << "Committed as :  " << message << std::endl;
+
+    if(!ParentCommit2.empty())
+    {
+        std::cout
+            << "Merge commit created."
+            << std::endl;
+    }
+
+    if(std::filesystem::exists(
+                path+"/.mygit/MERGE_HEAD"))
+    {
+        std::filesystem::remove(
+                path+"/.mygit/MERGE_HEAD");
+
+        std::filesystem::remove(
+                path+"/.mygit/MERGE_CONFLICTS");
+    }
 }
 

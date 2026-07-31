@@ -4,114 +4,417 @@
 #include "../track/track.h"
 #include "../branch/branch.h"
 #include <set>
-void merge(std::string upcomingbranch){
-    auto result = trackall();
-    if(result.untracked.size() !=0 ||result.modified.size() !=0||result.staged.size() !=0){
-        std::cout << "cant merge, you have pending changes" << std::endl;
+#include <algorithm>
+#include <fstream>
+#include "../branch/branch.h"
+#include "../commit/commit.h"
+
+#include <set>
+#include <fstream>
+#include <filesystem>
+#include "../utils/hash_file.h"
+
+void merge(std::string upcomingbranch)
+{
+    auto status = trackall();
+    if (!status.untracked.empty() ||
+            !status.modified.empty() ||
+            !status.staged.empty())
+    {
+        std::cout
+            << "cannot merge, you have pending changes"
+            << std::endl;
+
         return;
     }
+
     std::string root = getroot();
-    std::string anc = getcommonanc(upcomingbranch) ;
-    std::string head = loadhead(root) ;
-    std::string branch =loadbranch(root, head) ;
-    std::string comingbranch = loadbranch(root, "refs/heads/"+upcomingbranch) ;
-    if(anc.empty()){
-        return ;
+
+    std::string ancestor =
+        getcommonanc(upcomingbranch);
+
+    std::string head =
+        loadhead(root);
+
+    std::string currentCommit =
+        loadbranch(root, head);
+
+    std::string incomingCommit =
+        loadbranch(
+                root,
+                "refs/heads/" + upcomingbranch);
+
+    if (ancestor.empty())
+    {
+        std::cout
+            << "could not determine common ancestor"
+            << std::endl;
+
+        return;
     }
-    if(anc == branch){
-        std::ofstream file;
+
+
+    if (ancestor == currentCommit)
+    {
         checkout(upcomingbranch);
-        file.open(root+"/.mygit/"+head) ;
-        file << comingbranch;
+
+        std::ofstream file(
+                root + "/.mygit/" + head);
+
+        file << incomingCommit;
         file.close();
-        file.open(root+"/.mygit/HEAD") ;
-        file << head ;
-        file.close();
-        std::cout << "fast forward merge" << std::endl;
-        return ;
+
+        std::ofstream headfile(
+                root + "/.mygit/HEAD");
+
+        headfile << head;
+        headfile.close();
+
+        std::cout
+            << "Fast-forward merge."
+            << std::endl;
+
+        return;
     }
-    if(anc == comingbranch){
-        std::cout << "already up to date" << std::endl;
-        return ;
+
+
+    if (ancestor == incomingCommit)
+    {
+        std::cout
+            << "Already up to date."
+            << std::endl;
+
+        return;
     }
-    auto  anccommit= load_commit(root,anc);
-    auto  branchcommit= load_commit(root,branch);
-    auto  comingbranchcommit= load_commit(root,comingbranch);
-    std::unordered_map<std::string , MergeResult> mergelist;
-    std::ofstream merge(".mygit/MERGE_HEAD") ;
-    merge << branch << std::endl;
-    merge <<comingbranch << std::endl;
-    merge.close();
-    std::ofstream mergeconflicts(".mygit/MERGE_CONFLICTS") ;
+
+
+    auto ancestorFiles =
+        load_commit(root, ancestor);
+
+    auto currentFiles =
+        load_commit(root, currentCommit);
+
+    auto incomingFiles =
+        load_commit(root, incomingCommit);
+
+    std::unordered_map<
+        std::string,
+        MergeResult> mergeList;
+
+    std::ofstream mergeHead(
+            root + "/.mygit/MERGE_HEAD");
+
+    mergeHead << currentCommit << '\n';
+    mergeHead << incomingCommit << '\n';
+
+    mergeHead.close();
+
+    std::ofstream mergeConflicts(
+            root + "/.mygit/MERGE_CONFLICTS");
 
     std::set<std::string> files;
 
-    for(auto &[f,_] : anccommit)
+    for (auto& [f, _] : ancestorFiles)
         files.insert(f);
 
-    for(auto &[f,_] : branchcommit)
+    for (auto& [f, _] : currentFiles)
         files.insert(f);
 
-    for(auto &[f,_] : comingbranchcommit)
+    for (auto& [f, _] : incomingFiles)
         files.insert(f);
+
     bool conflict = false;
-    std::vector<std::string> conflictlist;
+
+    std::vector<std::string> conflictList;
+
     for (auto& file : files)
     {
-        std::string ancfiles = anccommit[file];
-        std::string branchfiles = branchcommit[file];
-        std::string comingfiles = comingbranchcommit[file];
+        std::string anc =
+            ancestorFiles[file];
 
-        if (branchfiles == comingfiles)
+        std::string curr =
+            currentFiles[file];
+
+        std::string inc =
+            incomingFiles[file];
+
+
+        if (curr == inc)
         {
-            // identical
-            mergelist[file] = TAKECURRENT;
+            mergeList[file] =
+                TAKECURRENT;
         }
-        else if (ancfiles == branchfiles)
+
+
+        else if (anc == curr)
         {
-            // only incoming changed
-            mergelist[file] = TAKEINCOMING;
+            mergeList[file] =
+                TAKEINCOMING;
+
         }
-        else if (ancfiles == comingfiles)
+
+
+        else if (anc == inc)
         {
-            // only current changed
-            mergelist[file] = TAKECURRENT;
+            mergeList[file] =
+                TAKECURRENT;
         }
+
+
         else
         {
-            std::cout
-                << "Conflict in "
+            auto result = merge_file(
+                    root +
+                    "/.mygit/objects/" +
+                    ancestor +
+                    "/" +
+                    file,
+
+                    root +
+                    "/.mygit/objects/" +
+                    currentCommit +
+                    "/" +
+                    file,
+
+                    root +
+                    "/.mygit/objects/" +
+                    incomingCommit +
+                    "/" +
+                    file,
+
+                    root +
+                    "/" +
+                    file);
+
+            if (result == CONFLICT)
+            {
+                conflict = true;
+
+                conflictList.push_back(
+                        file);
+            }
+        }
+    }
+
+
+    if (conflict)
+    {
+        for (auto& file : conflictList)
+        {
+            mergeConflicts
                 << file
                 << '\n';
-            conflictlist.push_back(file);
-
-            conflict = true;
-        }
-    }
-    if(conflict){
-        for(auto & file : conflictlist){
-            mergeconflicts << file << std::endl;
-        }
-        std::cout << "merge conflict" << std::endl;
-        std::cout << "conflict list" << std::endl;
-        for(auto & file : conflictlist){
-            std::cout <<"   " <<file << std::endl;
         }
 
-        return ;
+        std::cout
+            << "\nMerge conflict detected.\n"
+            << std::endl;
+
+        for (auto& file : conflictList)
+        {
+            std::cout
+                << "   "
+                << file
+                << std::endl;
+        }
+
+        std::cout
+            << "\nResolve the files and "
+            << "commit the merge."
+            << std::endl;
+
+        return;
     }
-    for(auto & [file,result] : mergelist){
-        if(result == TAKECURRENT){
+
+    for (auto& [file, result] : mergeList)
+    {
+        if (result == TAKECURRENT)
+        {
             continue;
         }
 
-        else if(result == TAKEINCOMING){
-            string source= root+"/.mygit/objects/"+comingbranch+"/"+file;
-            std::filesystem::path destination = std::filesystem::path(root) / file;
+        std::string source =
+            root +
+            "/.mygit/objects/" +
+            incomingCommit +
+            "/" +
+            file;
 
-            std::filesystem::create_directories(destination.parent_path());
-            std::filesystem::copy_file(source,destination , std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::path destination =
+            std::filesystem::path(root)
+            / file;
+
+        std::filesystem::create_directories(
+                destination.parent_path());
+
+        std::filesystem::copy_file(
+                source,
+                destination,
+                std::filesystem::copy_options::
+                overwrite_existing);
+    }
+
+for(auto& [f,r] : mergeList)
+{
+    std::cout
+        << f
+        << " "
+        << r
+        << std::endl;
+}
+
+rebuild_index_from_worktree();
+
+auto index = load_index(root);
+for (auto  entry: index){
+    std::cout << entry.first << " " << entry.second << std::endl;
+
+}
+
+    commit(
+            "Merge branch '" +
+            upcomingbranch +
+            "'");
+
+    std::filesystem::remove(
+            root + "/.mygit/MERGE_HEAD");
+
+    std::filesystem::remove(
+            root + "/.mygit/MERGE_CONFLICTS");
+
+    std::cout
+        << "Merge completed successfully."
+        << std::endl;
+}
+
+std::vector<std::string> read_file(std::string path)
+{
+    std::vector<std::string> lines;
+
+    std::ifstream file(path);
+
+    std::string line;
+
+    while (std::getline(file, line))
+    {
+        lines.push_back(line);
+    }
+
+    return lines;
+}
+
+MergeLineResult merge_file(
+        const std::string& ancestor,
+        const std::string& current,
+        const std::string& incoming,
+        const std::string& output)
+{
+    auto a = read_file(ancestor);
+    auto c = read_file(current);
+    auto i = read_file(incoming);
+
+    std::ofstream out(output);
+
+    size_t max_lines =
+        std::max({a.size(), c.size(), i.size()});
+
+    for (size_t x = 0; x < max_lines; x++)
+    {
+        std::string anc =
+            x < a.size() ? a[x] : "";
+
+        std::string curr =
+            x < c.size() ? c[x] : "";
+
+        std::string inc =
+            x < i.size() ? i[x] : "";
+
+        if (curr == inc)
+        {
+            out << curr << '\n';
+        }
+
+        else if (anc == curr)
+        {
+            out << inc << '\n';
+        }
+
+        else if (anc == inc)
+        {
+            out << curr << '\n';
+        }
+
+        else
+        {
+            out << "<<<<<<< CURRENT\n";
+            out << curr << '\n';
+            out << "=======\n";
+            out << inc << '\n';
+            out << ">>>>>>> INCOMING\n";
+
+            out.close();
+
+            return CONFLICT;
         }
     }
 
+    out.close();
+
+    return AUTO_MERGED;
+
+}
+
+
+void save_index(
+    const std::string& root,
+    const std::unordered_map<
+        std::string,
+        std::string>& index)
+{
+    std::ofstream file(
+            root + "/.mygit/index");
+
+    for (const auto& [path, hash] : index)
+    {
+        file
+            << path
+            << ' '
+            << hash
+            << '\n';
+    }
+}
+
+
+void rebuild_index_from_worktree()
+{
+    std::string root = getroot();
+
+    std::unordered_map<
+        std::string,
+        std::string> index;
+
+    for (auto const& entry :
+         std::filesystem::
+         recursive_directory_iterator(root))
+    {
+        if (!entry.is_regular_file())
+            continue;
+
+        auto relative =
+            std::filesystem::relative(
+                    entry.path(),
+                    root);
+
+        std::string file =
+            relative.string();
+
+        if (file.rfind(".mygit",0) == 0)
+            continue;
+
+        index[file] =
+            hash_file(
+                    entry.path().string());
+    }
+
+    save_index(root,index);
 }
