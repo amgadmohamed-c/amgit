@@ -10,12 +10,14 @@
 #include "utils/getroot.h"
 #include "branch/branch.h"
 #include "./merge/merge.h"
+#include "./revert/revert.h"
 int main(int argc, char *argv[])
 {
     std::string path = getroot();
     if (argc ==  2){
         if (std::string(argv[1])== "init"){
-            try{init();
+            try{
+                init();
                 std::cout << "directory created at " << path << std::endl; }
 
             catch (const std::filesystem::filesystem_error & e ) {
@@ -69,6 +71,11 @@ int main(int argc, char *argv[])
             }else if(std::string(argv[1]) == "merge"){
                 try{
                     merge(argv[2]);
+                }catch(const std::filesystem::filesystem_error & e){
+                    std::cerr<<e.what() << '\n' ;
+                } }else if(std::string(argv[1]) == "revert"){
+                try{
+                    revert(argv[2]);
                 }catch(const std::filesystem::filesystem_error & e){
                     std::cerr<<e.what() << '\n' ;
                 } }}
