@@ -7,6 +7,7 @@
 #include "../utils/hash_file.h"
 #include "../utils/sha1.hpp"
 #include <chrono>
+#include "../merge/CreateRerere.h"
 void commit(std::string message ){
 
     std::string path = getroot();
@@ -25,6 +26,9 @@ void commit(std::string message ){
 
     if(std::filesystem::exists(path+"/.mygit/MERGE_HEAD"))
     {
+        rerere_init(path);
+        learn_rerere();
+
         std::ifstream merge(
                 path+"/.mygit/MERGE_HEAD");
 
@@ -142,4 +146,3 @@ void commit(std::string message ){
                 path+"/.mygit/MERGE_CONFLICTS");
     }
 }
-

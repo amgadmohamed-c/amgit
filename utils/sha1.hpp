@@ -331,4 +331,21 @@ inline std::string SHA1::from_file(const std::string &filename)
 }
 
 
-#endif /* SHA1_HPP */
+/*
+ * Function-based convenience wrappers, to match the rest of the project's style.
+ */
+
+inline std::string sha1_hex(const std::string &s)
+{
+    SHA1 checksum;
+    checksum.update(s);
+    return checksum.final();
+}
+
+inline std::string sha1_hex_file(const std::string &filename)
+{
+    return SHA1::from_file(filename);
+}
+
+
+#endif // SHA1_HPP

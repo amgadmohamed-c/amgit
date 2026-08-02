@@ -14,6 +14,8 @@
 #include <filesystem>
 #include "../utils/hash_file.h"
 
+#include "CreateRerere.h"
+
 void merge(std::string upcomingbranch)
 {
     auto status = trackall();
@@ -29,6 +31,8 @@ void merge(std::string upcomingbranch)
     }
 
     std::string root = getroot();
+
+    rerere_init(root);
 
     std::string ancestor =
         getcommonanc(upcomingbranch);
@@ -345,17 +349,26 @@ MergeLineResult merge_file(
         }
 
         else
+
         {
-            out << "<<<<<<< CURRENT\n";
-            out << curr << '\n';
-            out << "=======\n";
-            out << inc << '\n';
-            out << ">>>>>>> INCOMING\n";
+    if(try_rerere(curr, inc, output))
+    {
+        out.close();
+        return AUTO_MERGED;
+    }
 
-            out.close();
+    save_preimage(curr, inc, output);
 
-            return CONFLICT;
-        }
+    out << "<<<<<<< CURRENT\n";
+    out << curr << '\n';
+    out << "=======\n";
+    out << inc << '\n';
+    out << ">>>>>>> INCOMING\n";
+
+    out.close();
+
+    return CONFLICT;
+}
     }
 
     out.close();
